@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Shaka Player with ClearKey DRM</title>
+    <link rel="shortcut icon" href="https://www.google.com/favicon.ico" type="image/x-icon">
+    <script src="https://cdn.jsdelivr.net/npm/shaka-player@4.14.9/dist/shaka-player.ui.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/shaka-player@4.14.9/dist/controls.min.css" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            background: black;
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+
+        #channel-list {
+            padding: 20px;
+        }
+
+        a.channel-link {
+            display: block;
+            color: cyan;
+            margin: 10px 0;
+            font-size: 18px;
+            text-decoration: none;
+        }
+
+        #player-container {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .shaka-overflow-menu,
+        .shaka-settings-menu {
+            background-color: rgba(0, 0, 0, .54);
+            backdrop-filter: blur(10px);
+            border-radius: 8px
+        }
+
+        .shaka-overflow-menu button:hover,
+        .shaka-settings-menu button:hover {
+            background-color: rgba(126, 126, 126, .3)
+        }
+
+        .shaka-overflow-menu button,
+        .shaka-settings-menu button {
+            color: #fff;
+            padding: 7px 6px;
+        }
+
+        .shaka-overflow-button-label {
+            color: #f5f5f5;
+        }
+
+        .shaka-current-selection-span {
+            color: #cacaca;
+        }
+
+        .material-icons-round {
+            color: #e6e6e6;
+        }
+
+        .shaka-spinner-path {
+            stroke: #fff;
+        }
+
+        @media only screen and (min-width: 320px) and (max-width: 940px) {
+            .shaka-play-button {
+                padding: calc(12% / 2)
+            }
+        }
+
+        /* Responsive styles */
+        @media (max-width: 768px) {
+            #channel-list h2 {
+                font-size: 20px;
+                text-align: center;
+            }
+
+            #channel-list div {
+                flex-direction: column !important;
+                align-items: flex-start !important;
+            }
+
+            #channel-list img {
+                width: 100% !important;
+                height: auto !important;
+                margin-right: 0 !important;
+                margin-bottom: 10px !important;
+            }
+
+            #channel-list select,
+            #channel-list button {
+                width: 100%;
+                margin-top: 5px;
+            }
+
+            .channel-link {
+                font-size: 16px !important;
+                text-align: left !important;
+            }
+        }
+
+        .match-container {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: flex-start;
+            background-color: #111;
+            border: 1px solid #444;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            padding: 10px;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .match-cover {
+            width: 160px;
+            height: 90px;
+            object-fit: cover;
+            border-radius: 4px;
+            flex-shrink: 0;
+        }
+
+        .match-info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .match-title {
+            font-weight: bold;
+            color: cyan;
+            font-size: 18px;
+            text-decoration: none;
+        }
+
+        .match-title:hover {
+            text-decoration: underline;
+        }
+
+        .match-select,
+        .match-button {
+            padding: 6px;
+            font-size: 14px;
+            border-radius: 4px;
+            border: none;
+            background-color: #333;
+            color: white;
+        }
+
+        .match-button {
+            background-color: #007bff;
+            cursor: pointer;
+        }
+
+        .match-button:hover {
+            background-color: #0056b3;
+        }
+
+        /* 📱 Mobile responsiveness */
+        @media (max-width: 768px) {
+            .match-container {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .match-cover {
+                width: 100%;
+                height: auto;
+            }
+
+            .match-title {
+                font-size: 16px;
+            }
+
+            .match-select,
+            .match-button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="channel-list"></div>
+
+    <div id="player-container" data-shaka-player-container>
+        <video autoplay playsinline data-shaka-player id="video"
+            poster="https://i.vimeocdn.com/video/1954341306-a080a511e7080f309b303845339d4d6ffe2ff7a48351f06116adee97d934ffe1-d?mw=900&mh=506"
+            style="width:100%;height:100%"></video>
+    </div>
+
+    <script>
+        let player;
+        let matches = [];
+
+        async function loadChannels() {
+            try {
+                const res = await fetch('https://raw.githubusercontent.com/drmlive/willow-live-events/refs/heads/main/willow.json');
+                if (!res.ok) throw new Error('Failed to load channels.json');
+                const data = await res.json();
+                matches = data.matches || [];
+                console.log("Matches loaded:", matches.map(m => m.titleId));
+            } catch (err) {
+                console.error("Error loading channel list:", err);
+                alert("Could not load match list.");
+            }
+        }
+
+        function showChannelList() {
+            const listContainer = document.getElementById("channel-list");
+            listContainer.innerHTML = "<h2>Live Matches</h2>";
+
+            for (const match of matches) {
+                const container = document.createElement("div");
+                container.className = "match-container";
+
+                const img = document.createElement("img");
+                img.src = match.cover;
+                img.alt = match.name;
+                img.className = "match-cover";
+
+                const infoDiv = document.createElement("div");
+                infoDiv.className = "match-info";
+
+                const title = document.createElement("a");
+                title.href = `?ch=${match.titleId}`;
+                title.textContent = match.name;
+                title.className = "match-title";
+
+                const cdnSelect = document.createElement("select");
+                cdnSelect.className = "match-select";
+
+                match.playback_data.urls.forEach((url) => {
+                    const option = document.createElement("option");
+                    option.value = url.url;
+                    option.textContent = `${url.cdn} (${url.videoCodec}, ${url.frameRate})`;
+                    cdnSelect.appendChild(option);
+                });
+
+                const playBtn = document.createElement("button");
+                playBtn.textContent = "▶ Play";
+                playBtn.className = "match-button";
+                playBtn.onclick = () => {
+                    const selectedUrl = cdnSelect.value;
+                    const keyEntry = match.playback_data.keys[0];
+                    const [keyId, key] = keyEntry.split(":");
+
+                    const playParams = encodeURIComponent(`${selectedUrl}?|drmScheme=clearkey&drmLicense=${keyId}:${key}`);
+                    window.location.href = `?ch=${match.titleId}&src=${playParams}`;
+                };
+
+                infoDiv.appendChild(title);
+                infoDiv.appendChild(cdnSelect);
+                infoDiv.appendChild(playBtn);
+
+                container.appendChild(img);
+                container.appendChild(infoDiv);
+                listContainer.appendChild(container);
+            }
+        }
+
+        async function initPlayer(id) {
+            const match = matches.find(m => m.titleId === id);
+            if (!match) {
+                alert("Match not found.");
+                return;
+            }
+
+            const video = document.getElementById('video');
+            const ui = video.ui;
+            const controls = ui.getControls();
+            player = controls.getPlayer();
+
+            player.addEventListener('error', e => {
+                console.error("Shaka error:", e.detail);
+            });
+
+            if (!shaka.Player.isBrowserSupported()) {
+                alert("Browser not supported.");
+                return;
+            }
+
+            const manifestUrl = match.playback_data.urls[0].url;
+            const keyEntry = match.playback_data.keys[0];
+            const [keyId, key] = keyEntry.split(":");
+
+            player.configure({
+                drm: {
+                    clearKeys: {
+                        [keyId]: key
+                    }
+                },
+                streaming: {
+                    rebufferingGoal: 2,
+                    bufferingGoal: 30,
+                    bufferBehind: 60,
+                    lowLatencyMode: true,
+                    ignoreTextStreamFailures: true,
+                    jumpLargeGaps: true,
+                    inaccurateManifestTolerance: 0.3,
+                    stallEnabled: false
+                },
+                manifest: {
+                    dash: {
+                        ignoreMinBufferTime: true,
+                        autoCorrectDrift: true
+                    }
+                },
+                abr: {
+                    enabled: true,
+                    minBandwidth: 1000000,
+                    maxBandwidth: 5000000,
+                    defaultEstimate: 2000000,
+                    adaptive: {
+                        initialBitrate: 1000000,
+                        bitrateSafetyMargin: 1.2
+                    }
+                }
+            });
+
+            ui.configure({
+                controlPanelElements: ["play_pause", "mute", "volume", "spacer", "time_and_duration", "quality", "fullscreen", "overflow_menu"],
+                volumeBarColors: {
+                    base: 'rgba(50, 50, 50, 0.4)',
+                    level: 'rgba(225, 225, 225, 0.8)'
+                },
+                seekBarColors: {
+                    base: 'rgba(100, 100, 100, 0.6)',
+                    buffered: 'rgba(200, 200, 200, 0.5)',
+                    played: 'rgba(229, 9, 20, 1)'
+                },
+                enableKeyboardPlaybackControls: true
+            });
+
+            try {
+                await player.load(manifestUrl);
+                console.log("Playing match:", match.name);
+            } catch (error) {
+                console.error("Failed to load video:", error);
+                alert("Failed to load video.");
+            }
+        }
+
+        window.onload = async () => {
+            await loadChannels();
+
+            const params = new URLSearchParams(window.location.search);
+            const id = params.get("ch");
+
+            if (id) {
+                const match = matches.find(m => m.titleId === id);
+                if (match) {
+                    document.getElementById("channel-list").style.display = "none";
+                    document.getElementById("player-container").style.display = "block";
+                    await initPlayer(id);
+                    return;
+                }
+            }
+
+            showChannelList();
+        };
+    </script>
+</body>
+
+</html>
