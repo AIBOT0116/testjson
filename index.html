@@ -5,26 +5,15 @@
     <meta charset="UTF-8">
     <title>Shaka Player with ClearKey DRM</title>
     <link rel="shortcut icon" href="https://www.google.com/favicon.ico" type="image/x-icon">
-    <script src="https://cdn.jsdelivr.net/npm/shaka-player@4.14.9/dist/shaka-player.ui.min.js"></script>
-    <link href="https://cdn.jsdelivr.net/npm/shaka-player@4.14.9/dist/controls.min.css" rel="stylesheet">
+    <!-- Shaka Player scripts and styles -->
+    <script src="https://cdn.jsdelivr.net/npm/shaka-player@latest/dist/shaka-player.ui.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/shaka-player@latest/dist/controls.min.css">
     <style>
         body {
             margin: 0;
-            background: black;
-            color: white;
-            font-family: Arial, sans-serif;
-        }
-
-        #channel-list {
-            padding: 20px;
-        }
-
-        a.channel-link {
-            display: block;
-            color: cyan;
-            margin: 10px 0;
-            font-size: 18px;
-            text-decoration: none;
+            background: #000;
+            color: #fff;
+            font-family: Arial, sans-serif
         }
 
         #player-container {
@@ -33,7 +22,7 @@
             top: 0;
             left: 0;
             width: 100%;
-            height: 100%;
+            height: 100%
         }
 
         .shaka-overflow-menu,
@@ -51,148 +40,181 @@
         .shaka-overflow-menu button,
         .shaka-settings-menu button {
             color: #fff;
-            padding: 7px 6px;
+            padding: 7px 6px
         }
 
         .shaka-overflow-button-label {
-            color: #f5f5f5;
+            color: #f5f5f5
         }
 
         .shaka-current-selection-span {
-            color: #cacaca;
+            color: #cacaca
         }
 
         .material-icons-round {
-            color: #e6e6e6;
+            color: #e6e6e6
         }
 
         .shaka-spinner-path {
-            stroke: #fff;
+            stroke: #fff
         }
 
-        @media only screen and (min-width: 320px) and (max-width: 940px) {
+        .shaka-controls-container[shown=true] .shaka-settings-menu {
+            scrollbar-width: thin
+        }
+
+        @media only screen and (min-width:320px) and (max-width:940px) {
             .shaka-play-button {
                 padding: calc(12% / 2)
             }
         }
 
-        /* Responsive styles */
-        @media (max-width: 768px) {
-            #channel-list h2 {
-                font-size: 20px;
-                text-align: center;
-            }
-
-            #channel-list div {
-                flex-direction: column !important;
-                align-items: flex-start !important;
-            }
-
-            #channel-list img {
-                width: 100% !important;
-                height: auto !important;
-                margin-right: 0 !important;
-                margin-bottom: 10px !important;
-            }
-
-            #channel-list select,
-            #channel-list button {
-                width: 100%;
-                margin-top: 5px;
-            }
-
-            .channel-link {
-                font-size: 16px !important;
-                text-align: left !important;
-            }
+        .h2 {
+            margin: 20px 0 0 20px
         }
 
-        .match-container {
-            display: flex;
-            flex-direction: row;
-            align-items: center;
-            justify-content: flex-start;
-            background-color: #111;
-            border: 1px solid #444;
+        a.channel-link {
+            display: block;
+            color: #ebebeb;
+            font-size: 18px;
+            text-decoration: none
+        }
+
+        #channel-list {
+            padding: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px
+        }
+
+        .match-item {
+            background: #1a1a1a;
             border-radius: 8px;
-            margin-bottom: 20px;
-            padding: 10px;
-            gap: 15px;
-            flex-wrap: wrap;
+            overflow: hidden;
+            transition: transform .2s
         }
 
-        .match-cover {
-            width: 160px;
-            height: 90px;
+        .match-item:hover {
+            transform: translateY(-5px)
+        }
+
+        .match-thumbnail {
+            width: 100%;
+            height: 180px;
             object-fit: cover;
-            border-radius: 4px;
-            flex-shrink: 0;
+            border-radius: 6px
         }
 
-        .match-info {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
+        .match-text {
+            padding: 15px
         }
 
         .match-title {
-            font-weight: bold;
-            color: cyan;
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            text-overflow: ellipsis
+        }
+
+        .match-info {
+            font-size: 12px;
+            color: #aaa;
+            line-height: 1.4
+        }
+
+        .no-matches-message {
+            grid-column: 1/-1;
+            text-align: center;
+            padding: 40px;
             font-size: 18px;
-            text-decoration: none;
+            color: #ccc
         }
 
-        .match-title:hover {
-            text-decoration: underline;
+        .last-update {
+            grid-column: 1/-1;
+            text-align: right;
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 10px
         }
 
-        .match-select,
-        .match-button {
-            padding: 6px;
-            font-size: 14px;
-            border-radius: 4px;
-            border: none;
-            background-color: #333;
-            color: white;
-        }
-
-        .match-button {
-            background-color: #007bff;
-            cursor: pointer;
-        }
-
-        .match-button:hover {
-            background-color: #0056b3;
-        }
-
-        /* 📱 Mobile responsiveness */
-        @media (max-width: 768px) {
-            .match-container {
-                flex-direction: column;
-                align-items: stretch;
+        @media (max-width:767px) {
+            #channel-list {
+                grid-template-columns: 1fr;
+                padding: 10px;
+                gap: 15px
             }
 
-            .match-cover {
-                width: 100%;
-                height: auto;
+            .match-item {
+                margin-bottom: 10px
+            }
+
+            .match-thumbnail {
+                height: 150px
+            }
+
+            .match-text {
+                padding: 12px
             }
 
             .match-title {
-                font-size: 16px;
+                font-size: 15px
             }
 
-            .match-select,
-            .match-button {
-                width: 100%;
+            .match-info {
+                font-size: 11px
             }
+
+            #player-container {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%
+            }
+
+            .shaka-video-container {
+                width: 100% !important;
+                height: 100% !important
+            }
+
+            .last-update {
+                text-align: left;
+                margin-bottom: 15px;
+                font-size: 11px
+            }
+        }
+
+        @media (min-width:768px) and (max-width:1023px) {
+            #channel-list {
+                grid-template-columns: repeat(2, 1fr)
+            }
+        }
+
+        .channel-link {
+            display: block;
+            padding: 8px
+        }
+
+        .match-title {
+            white-space: normal;
+            display: -webkit-box;
+            line-clamp: 2;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden
         }
     </style>
 </head>
 
 <body>
-    <div id="channel-list"></div>
-
+    <div id="main">
+        <h2 class="h2">Available Matches</h2>
+        <div id="channel-list">
+            <div class="last-update" id="last-update"></div>
+            <!-- rest of your content -->
+        </div>
+    </div>
     <div id="player-container" data-shaka-player-container>
         <video autoplay playsinline data-shaka-player id="video"
             poster="https://i.vimeocdn.com/video/1954341306-a080a511e7080f309b303845339d4d6ffe2ff7a48351f06116adee97d934ffe1-d?mw=900&mh=506"
@@ -205,72 +227,73 @@
 
         async function loadChannels() {
             try {
-                const res = await fetch('https://raw.githubusercontent.com/drmlive/willow-live-events/refs/heads/main/willow.json');
+                const res = await fetch('https://raw.githubusercontent.com/drmlive/sliv-live-events/44c64/sonyliv.json');
                 if (!res.ok) throw new Error('Failed to load channels.json');
                 const data = await res.json();
                 matches = data.matches || [];
-                console.log("Matches loaded:", matches.map(m => m.titleId));
+                console.log("Matches loaded:", matches.map(m => m.contentId));
             } catch (err) {
                 console.error("Error loading channel list:", err);
-                alert("Could not load match list.");
             }
         }
 
         function showChannelList() {
             const listContainer = document.getElementById("channel-list");
-            listContainer.innerHTML = "<h2>Live Matches</h2>";
+            const lastUpdateEl = document.getElementById("last-update");
 
-            for (const match of matches) {
-                const container = document.createElement("div");
-                container.className = "match-container";
-
-                const img = document.createElement("img");
-                img.src = match.cover;
-                img.alt = match.name;
-                img.className = "match-cover";
-
-                const infoDiv = document.createElement("div");
-                infoDiv.className = "match-info";
-
-                const title = document.createElement("a");
-                title.href = `?ch=${match.titleId}`;
-                title.textContent = match.name;
-                title.className = "match-title";
-
-                const cdnSelect = document.createElement("select");
-                cdnSelect.className = "match-select";
-
-                match.playback_data.urls.forEach((url) => {
-                    const option = document.createElement("option");
-                    option.value = url.url;
-                    option.textContent = `${url.cdn} (${url.videoCodec}, ${url.frameRate})`;
-                    cdnSelect.appendChild(option);
-                });
-
-                const playBtn = document.createElement("button");
-                playBtn.textContent = "▶ Play";
-                playBtn.className = "match-button";
-                playBtn.onclick = () => {
-                    const selectedUrl = cdnSelect.value;
-                    const keyEntry = match.playback_data.keys[0];
-                    const [keyId, key] = keyEntry.split(":");
-
-                    const playParams = encodeURIComponent(`${selectedUrl}?|drmScheme=clearkey&drmLicense=${keyId}:${key}`);
-                    window.location.href = `?ch=${match.titleId}&src=${playParams}`;
-                };
-
-                infoDiv.appendChild(title);
-                infoDiv.appendChild(cdnSelect);
-                infoDiv.appendChild(playBtn);
-
-                container.appendChild(img);
-                container.appendChild(infoDiv);
-                listContainer.appendChild(container);
+            // Add last update time
+            if (lastUpdateEl) {
+                lastUpdateEl.textContent = "Last updated: " + (new Date()).toLocaleString();
             }
+
+            if (!matches.length) {
+                const noMatchMessage = document.createElement("div");
+                noMatchMessage.className = "no-matches-message";
+                noMatchMessage.textContent = "No live matches available at the moment.";
+                listContainer.appendChild(noMatchMessage);
+                return;
+            }
+
+            matches.forEach(match => {
+                const container = document.createElement("div");
+                container.className = "match-item";
+
+                const link = document.createElement("a");
+                link.href = `?ch=${match.contentId}`;
+                link.className = "channel-link";
+
+                const thumbnail = document.createElement("img");
+                thumbnail.src = match.src || 'https://via.placeholder.com/300x180?text=No+Thumbnail';
+                thumbnail.alt = match.match_name || match.event_name;
+                thumbnail.className = "match-thumbnail";
+
+                const textContent = document.createElement("div");
+                textContent.className = "match-text";
+
+                const title = document.createElement("div");
+                title.className = "match-title";
+                title.textContent = match.match_name || match.event_name;
+
+                const channelInfo = document.createElement("div");
+                channelInfo.className = "match-info";
+                channelInfo.innerHTML = `
+            <div>Channel: ${match.broadcast_channel}</div>
+            <div>Category: ${match.event_category}</div>
+            <div>Status: ${match.isLive ? '<span style="color:red">LIVE</span>' : 'Upcoming'}</div>
+        `;
+
+                textContent.appendChild(title);
+                textContent.appendChild(channelInfo);
+
+                link.appendChild(thumbnail);
+                link.appendChild(textContent);
+                container.appendChild(link);
+                listContainer.appendChild(container);
+            });
         }
 
         async function initPlayer(id) {
-            const match = matches.find(m => m.titleId === id);
+            const match = matches.find(m => m.contentId.toString() === id);
             if (!match) {
                 alert("Match not found.");
                 return;
@@ -290,23 +313,18 @@
                 return;
             }
 
-            const manifestUrl = match.playback_data.urls[0].url;
-            const keyEntry = match.playback_data.keys[0];
-            const [keyId, key] = keyEntry.split(":");
+            const manifestUrl = match.video_url;
+
+            // const baseProxy = "/";
+            // let manifestPath = (match.video_url || "");
+            // const manifestUrl = baseProxy + manifestPath;
 
             player.configure({
-                drm: {
-                    clearKeys: {
-                        [keyId]: key
-                    }
-                },
                 streaming: {
                     rebufferingGoal: 2,
                     bufferingGoal: 30,
                     bufferBehind: 60,
-                    lowLatencyMode: true,
                     ignoreTextStreamFailures: true,
-                    jumpLargeGaps: true,
                     inaccurateManifestTolerance: 0.3,
                     stallEnabled: false
                 },
@@ -317,14 +335,7 @@
                     }
                 },
                 abr: {
-                    enabled: true,
-                    minBandwidth: 1000000,
-                    maxBandwidth: 5000000,
-                    defaultEstimate: 2000000,
-                    adaptive: {
-                        initialBitrate: 1000000,
-                        bitrateSafetyMargin: 1.2
-                    }
+                    enabled: true
                 }
             });
 
@@ -344,7 +355,7 @@
 
             try {
                 await player.load(manifestUrl);
-                console.log("Playing match:", match.name);
+                console.log("Playing match:", match.match_name);
             } catch (error) {
                 console.error("Failed to load video:", error);
                 alert("Failed to load video.");
@@ -358,15 +369,14 @@
             const id = params.get("ch");
 
             if (id) {
-                const match = matches.find(m => m.titleId === id);
+                const match = matches.find(m => m.contentId.toString() === id);
                 if (match) {
-                    document.getElementById("channel-list").style.display = "none";
+                    document.getElementById("main").style.display = "none";
                     document.getElementById("player-container").style.display = "block";
                     await initPlayer(id);
                     return;
                 }
             }
-
             showChannelList();
         };
     </script>
